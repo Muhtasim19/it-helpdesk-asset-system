@@ -1,14 +1,17 @@
+import { Link } from "react-router";
 import { useForm } from "react-hook-form";
 
 function LoginPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm();
 
-  const onSubmit = (data) => {
-    console.log("Login information:", data);
+  const onSubmit = async (data) => {
+    console.log("Login submitted for:", data.email);
+
+    // Later, send data to the backend here.
   };
 
   return (
@@ -37,10 +40,15 @@ function LoginPage() {
             <input
               id="email"
               type="email"
+              autoComplete="email"
               placeholder="you@example.com"
               className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               {...register("email", {
                 required: "Email is required",
+                pattern: {
+                  value: /^\S+@\S+\.\S+$/,
+                  message: "Enter a valid email address",
+                },
               })}
             />
 
@@ -62,6 +70,7 @@ function LoginPage() {
             <input
               id="password"
               type="password"
+              autoComplete="current-password"
               placeholder="Enter your password"
               className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               {...register("password", {
@@ -82,11 +91,22 @@ function LoginPage() {
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
+            disabled={isSubmitting}
+            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Sign in
+            {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
         </form>
+
+        <p className="mt-6 text-center text-sm text-slate-600">
+          Do not have an account?{" "}
+          <Link
+            to="/register"
+            className="font-semibold text-blue-600 hover:text-blue-700"
+          >
+            Create account
+          </Link>
+        </p>
       </section>
     </main>
   );
