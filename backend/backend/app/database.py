@@ -2,7 +2,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "postgresql://postgres:YOUR_PASSWORD@localhost/helpdesk_db"
+DATABASE_URL = "postgresql://postgres:Nadiashafik1@localhost/helpdesk_db"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(
@@ -10,3 +10,15 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine
 )
+
+
+from sqlalchemy.orm import declarative_base
+
+Base = declarative_base()
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
