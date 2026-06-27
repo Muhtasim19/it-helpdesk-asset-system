@@ -1,23 +1,65 @@
-import { Link } from "react-router";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
+import api from "../services/api";
 
 function RegisterPage() {
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm();
 
   const password = watch("password");
 
-  const onSubmit = (data) => {
-    // Do not log passwords.
-    console.log("Registration submitted:", {
-      name: data.name,
-      email: data.email,
-    });
+  const onSubmit = async (data) => {
+    setServerError("");
+    setSuccessMessage("");
+
+    try {
+      await api.post("/register", {
+        name: data.name.trim(),
+        email: data.email.trim(),
+        password: data.password,
+      });
+
+      setSuccessMessage("Account created successfully. Redirecting to login...");
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+    } 
+     catch (error) {
+      console.error("Registration error:", error);
+
+      if (!error.response) {
+        setServerError(
+          "Cannot connect to the backend. Make sure the API is running on port 8000."
+        );
+        return;
+      }
+
+      const backendMessage =
+        error.response.data?.detail ||
+        error.response.data?.message;
+
+      if (Array.isArray(backendMessage)) {
+        setServerError(
+          backendMessage.map((item) => item.msg).join(", ")
+        );
+      } else {
+        setServerError(
+          backendMessage ||
+          `Registration failed with status ${error.response.status}.`
+        );
+    }
+  }
   };
+  const navigate = useNavigate();
+  
+  const [serverError, setServerError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-10">
@@ -151,12 +193,23 @@ function RegisterPage() {
               </p>
             )}
           </div>
+          {serverError && (
+            <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              {serverError}
+            </p>
+          )}
 
+          {successMessage && (
+            <p className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
+              {successMessage}
+            </p>
+          )}
           <button
             type="submit"
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700"
+            disabled={isSubmitting}
+            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Create account
+            {isSubmitting ? "Creating account..." : "Create account"}
           </button>
         </form>
 
