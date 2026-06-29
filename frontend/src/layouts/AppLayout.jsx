@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router";
+```jsx
+import { NavLink, Outlet, useNavigate } from "react-router";
 
 const navigationLinks = [
   { name: "Dashboard", path: "/dashboard" },
@@ -7,6 +8,13 @@ const navigationLinks = [
 ];
 
 function AppLayout() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    navigate("/login");
+  };
+
   const getLinkClasses = ({ isActive }) =>
     [
       "rounded-lg px-4 py-3 text-sm font-medium transition",
@@ -50,6 +58,7 @@ function AppLayout() {
 
           <button
             type="button"
+            onClick={handleLogout}
             className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Log out
@@ -63,3 +72,4 @@ function AppLayout() {
 }
 
 export default AppLayout;
+```

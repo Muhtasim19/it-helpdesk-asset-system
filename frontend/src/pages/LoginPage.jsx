@@ -1,7 +1,13 @@
-import { Link } from "react-router";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 
+import { loginUser, saveToken } from "../services/auth";
+
 function LoginPage() {
+  const navigate = useNavigate();
+  const [serverError, setServerError] = useState("");
+
   const {
     register,
     handleSubmit,
@@ -9,9 +15,25 @@ function LoginPage() {
   } = useForm();
 
   const onSubmit = async (data) => {
-    console.log("Login submitted for:", data.email);
+    setServerError("");
 
-    // Later, send data to the backend here.
+    try {
+      const result = await loginUser({
+        email: data.email,
+        password: data.password,
+      });
+
+      saveToken(result.access_token);
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Login error:", error);
+
+      const message =
+        error.response?.data?.detail ||
+        "Unable to log in. Please try again.";
+
+      setServerError(message);
+    }
   };
 
   return (
@@ -41,14 +63,9 @@ function LoginPage() {
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="you@example.com"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-slate-300 px-4 py-3"
               {...register("email", {
                 required: "Email is required",
-                pattern: {
-                  value: /^\S+@\S+\.\S+$/,
-                  message: "Enter a valid email address",
-                },
               })}
             />
 
@@ -71,14 +88,9 @@ function LoginPage() {
               id="password"
               type="password"
               autoComplete="current-password"
-              placeholder="Enter your password"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-slate-300 px-4 py-3"
               {...register("password", {
                 required: "Password is required",
-                minLength: {
-                  value: 6,
-                  message: "Password must be at least 6 characters",
-                },
               })}
             />
 
@@ -89,10 +101,16 @@ function LoginPage() {
             )}
           </div>
 
+          {serverError && (
+            <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+              {serverError}
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white disabled:opacity-60"
           >
             {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
@@ -100,10 +118,7 @@ function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-slate-600">
           Do not have an account?{" "}
-          <Link
-            to="/register"
-            className="font-semibold text-blue-600 hover:text-blue-700"
-          >
+          <Link to="/register" className="font-semibold text-blue-600">
             Create account
           </Link>
         </p>

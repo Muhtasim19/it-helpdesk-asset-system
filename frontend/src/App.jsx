@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router";
 
+import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./layouts/AppLayout";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -15,10 +16,12 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
-      <Route element={<AppLayout />}>
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/assets" element={<AssetsPage />} />
-        <Route path="/tickets" element={<TicketsPage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppLayout />}>
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/assets" element={<AssetsPage />} />
+          <Route path="/tickets" element={<TicketsPage />} />
+        </Route>
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
