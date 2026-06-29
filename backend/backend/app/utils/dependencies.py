@@ -8,7 +8,7 @@ from app.database import get_db
 from app.models.user import User
 from app.utils.jwt import SECRET_KEY, ALGORITHM
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 
 def get_current_user(
@@ -41,3 +41,13 @@ def get_current_user(
         raise credentials_exception
 
     return user
+
+
+def get_current_admin(current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Admins only"
+        )
+
+    return current_user

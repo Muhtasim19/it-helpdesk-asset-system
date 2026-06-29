@@ -8,16 +8,16 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate
+from app.schemas.user import LoginRequest
 
 from app.utils.security import hash_password
-
-from app.schemas.user import LoginRequest
 from app.utils.security import verify_password
 
 
 from app.utils.jwt import create_access_token
 
 from app.utils.dependencies import get_current_user
+from app.utils.dependencies import get_current_admin
 
 router = APIRouter()
 
@@ -93,4 +93,11 @@ def get_me(current_user: User = Depends(get_current_user)):
         "name": current_user.name,
         "email": current_user.email,
         "role": current_user.role
+    }
+
+@router.get("/admin")
+def admin_only(current_user: User = Depends(get_current_admin)):
+    return {
+        "message": "Welcome, admin!",
+        "user": current_user.name
     }
