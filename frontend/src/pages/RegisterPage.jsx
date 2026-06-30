@@ -1,15 +1,50 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
+
 import api from "../services/api";
 
+function getRegistrationErrorMessage(error) {
+  if (!error.response) {
+    return "Cannot connect to the backend. Make sure the API is running on port 8000.";
+  }
+
+  const detail =
+    error.response.data?.detail ||
+    error.response.data?.message;
+
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => item.msg || "Registration validation error")
+      .join(", ");
+  }
+
+  return `Registration failed with status ${error.response.status}.`;
+}
+
 function RegisterPage() {
+  const navigate = useNavigate();
+
+  const [serverError, setServerError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
   const {
     register,
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
-  } = useForm();
+  } = useForm({
+    defaultValues: {
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
+  });
 
   const password = watch("password");
 
@@ -24,203 +59,229 @@ function RegisterPage() {
         password: data.password,
       });
 
-      setSuccessMessage("Account created successfully. Redirecting to login...");
+      setSuccessMessage(
+        "Account created successfully. Redirecting to login...",
+      );
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         navigate("/login");
       }, 1500);
-    } 
-     catch (error) {
+    } catch (error) {
       console.error("Registration error:", error);
-
-      if (!error.response) {
-        setServerError(
-          "Cannot connect to the backend. Make sure the API is running on port 8000."
-        );
-        return;
-      }
-
-      const backendMessage =
-        error.response.data?.detail ||
-        error.response.data?.message;
-
-      if (Array.isArray(backendMessage)) {
-        setServerError(
-          backendMessage.map((item) => item.msg).join(", ")
-        );
-      } else {
-        setServerError(
-          backendMessage ||
-          `Registration failed with status ${error.response.status}.`
-        );
+      setServerError(getRegistrationErrorMessage(error));
     }
-  }
   };
-  const navigate = useNavigate();
-  
-  const [serverError, setServerError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-10">
-      <section className="w-full max-w-md rounded-xl bg-white p-8 shadow-md">
-        <h1 className="text-3xl font-bold text-slate-900">
-          Create account
-        </h1>
+    <main className="grid min-h-screen bg-[#F7F8FA] lg:grid-cols-[520px_1fr]">
+      <section className="flex min-h-screen flex-col justify-between px-4 py-6 sm:px-8 lg:px-12">
+        <div />
 
-        <p className="mt-2 text-slate-600">
-          Register for the IT Help Desk system.
+        <div className="mx-auto w-full max-w-md">
+          <div className="mb-8 lg:hidden">
+            <div className="inline-flex rounded-xl bg-[#5D707F] px-4 py-2 font-bold text-white">
+              IT Help Desk
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#8797B2]/30 bg-white p-8 shadow-sm">
+            <div className="mb-8">
+              <div className="mb-5 h-2 w-16 rounded-full bg-[#66CED6]" />
+
+              <h1 className="text-3xl font-bold text-black">
+                Create account
+              </h1>
+
+              <p className="mt-2 text-[#5D707F]">
+                Register for the IT Help Desk system.
+              </p>
+            </div>
+
+            <form
+              className="space-y-5"
+              onSubmit={handleSubmit(onSubmit)}
+            >
+              <div>
+                <label
+                  htmlFor="name"
+                  className="mb-2 block text-sm font-medium text-[#5D707F]"
+                >
+                  Full name
+                </label>
+
+                <input
+                  id="name"
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Your full name"
+                  className="w-full rounded-lg border border-[#8797B2]/50 bg-white px-4 py-3 text-black outline-none transition focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
+                  {...register("name", {
+                    required: "Full name is required",
+                    minLength: {
+                      value: 2,
+                      message:
+                        "Name must contain at least 2 characters",
+                    },
+                  })}
+                />
+
+                {errors.name && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.name.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="email"
+                  className="mb-2 block text-sm font-medium text-[#5D707F]"
+                >
+                  Email address
+                </label>
+
+                <input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  className="w-full rounded-lg border border-[#8797B2]/50 bg-white px-4 py-3 text-black outline-none transition focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
+                  {...register("email", {
+                    required: "Email is required",
+                    pattern: {
+                      value: /^\S+@\S+\.\S+$/,
+                      message: "Enter a valid email address",
+                    },
+                  })}
+                />
+
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.email.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="password"
+                  className="mb-2 block text-sm font-medium text-[#5D707F]"
+                >
+                  Password
+                </label>
+
+                <input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Create a password"
+                  className="w-full rounded-lg border border-[#8797B2]/50 bg-white px-4 py-3 text-black outline-none transition focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
+                  {...register("password", {
+                    required: "Password is required",
+                    minLength: {
+                      value: 6,
+                      message:
+                        "Password must contain at least 6 characters",
+                    },
+                  })}
+                />
+
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="mb-2 block text-sm font-medium text-[#5D707F]"
+                >
+                  Confirm password
+                </label>
+
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Enter the password again"
+                  className="w-full rounded-lg border border-[#8797B2]/50 bg-white px-4 py-3 text-black outline-none transition focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
+                  {...register("confirmPassword", {
+                    required: "Please confirm your password",
+                    validate: (value) =>
+                      value === password ||
+                      "Passwords do not match",
+                  })}
+                />
+
+                {errors.confirmPassword && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+
+              {serverError && (
+                <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  {serverError}
+                </p>
+              )}
+
+              {successMessage && (
+                <p className="rounded-lg border border-[#66CED6]/40 bg-[#66CED6]/15 p-3 text-sm text-[#5D707F]">
+                  {successMessage}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full rounded-lg bg-[#66CED6] px-4 py-3 font-semibold text-black transition-colors duration-200 hover:bg-[#8797B2] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting
+                  ? "Creating account..."
+                  : "Create account"}
+              </button>
+            </form>
+
+            <p className="mt-6 text-center text-sm text-[#5D707F]">
+              Already have an account?{" "}
+              <Link
+                to="/login"
+                className="font-semibold text-[#5D707F] underline decoration-[#66CED6] decoration-2 underline-offset-4 hover:text-black"
+              >
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        <p className="text-center text-sm text-[#5D707F] lg:hidden">
+          © 2026 IT Help Desk. All rights reserved.
         </p>
+      </section>
 
-        <form
-          className="mt-8 space-y-5"
-          onSubmit={handleSubmit(onSubmit)}
-        >
-          <div>
-            <label
-              htmlFor="name"
-              className="mb-2 block text-sm font-medium text-slate-700"
-            >
-              Full name
-            </label>
-
-            <input
-              id="name"
-              type="text"
-              autoComplete="name"
-              placeholder="Your full name"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              {...register("name", {
-                required: "Full name is required",
-                minLength: {
-                  value: 2,
-                  message: "Name must contain at least 2 characters",
-                },
-              })}
-            />
-
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.name.message}
-              </p>
-            )}
+      <section className="hidden bg-[#5D707F] p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <div>
+          <div className="inline-flex rounded-xl bg-[#66CED6] px-4 py-2 font-bold text-black">
+            IT Help Desk
           </div>
 
-          <div>
-            <label
-              htmlFor="email"
-              className="mb-2 block text-sm font-medium text-slate-700"
-            >
-              Email address
-            </label>
+          <div className="mt-16 max-w-xl">
+            <h2 className="text-5xl font-bold leading-tight">
+              Start managing IT support with a cleaner workflow.
+            </h2>
 
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              {...register("email", {
-                required: "Email is required",
-                pattern: {
-                  value: /^\S+@\S+\.\S+$/,
-                  message: "Enter a valid email address",
-                },
-              })}
-            />
-
-            {errors.email && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.email.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="password"
-              className="mb-2 block text-sm font-medium text-slate-700"
-            >
-              Password
-            </label>
-
-            <input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              placeholder="Create a password"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              {...register("password", {
-                required: "Password is required",
-                minLength: {
-                  value: 6,
-                  message: "Password must contain at least 6 characters",
-                },
-              })}
-            />
-
-            {errors.password && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label
-              htmlFor="confirmPassword"
-              className="mb-2 block text-sm font-medium text-slate-700"
-            >
-              Confirm password
-            </label>
-
-            <input
-              id="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              placeholder="Enter the password again"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              {...register("confirmPassword", {
-                required: "Please confirm your password",
-                validate: (value) =>
-                  value === password || "Passwords do not match",
-              })}
-            />
-
-            {errors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.confirmPassword.message}
-              </p>
-            )}
-          </div>
-          {serverError && (
-            <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
-              {serverError}
+            <p className="mt-6 text-lg leading-8 text-white/75">
+              Create an account, access the dashboard, track assets,
+              and manage help desk tickets from one secure portal.
             </p>
-          )}
+          </div>
+        </div>
 
-          {successMessage && (
-            <p className="rounded-lg bg-green-50 p-3 text-sm text-green-700">
-              {successMessage}
-            </p>
-          )}
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isSubmitting ? "Creating account..." : "Create account"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-slate-600">
-          Already have an account?{" "}
-          <Link
-            to="/login"
-            className="font-semibold text-blue-600 hover:text-blue-700"
-          >
-            Sign in
-          </Link>
+        <p className="text-sm text-white/65">
+          © 2026 IT Help Desk. All rights reserved.
         </p>
       </section>
     </main>

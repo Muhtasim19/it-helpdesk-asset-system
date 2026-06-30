@@ -37,6 +37,21 @@ function getErrorMessage(error, fallbackMessage) {
   return fallbackMessage;
 }
 
+function getPriorityBadgeClasses(priority) {
+  switch (priority) {
+    case "low":
+      return "bg-[#66CED6] text-black";
+    case "medium":
+      return "bg-[#A7A5C6] text-black";
+    case "high":
+      return "bg-[#6D8A96] text-white";
+    case "critical":
+      return "bg-[#5D707F] text-white";
+    default:
+      return "bg-[#8797B2] text-white";
+  }
+}
+
 function TicketsPage() {
   const [tickets, setTickets] = useState([]);
   const [ticketUpdates, setTicketUpdates] = useState({});
@@ -202,23 +217,23 @@ function TicketsPage() {
   return (
     <section className="p-6">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900">
+        <h1 className="text-3xl font-bold text-black">
           Tickets
         </h1>
 
-        <p className="mt-2 text-slate-600">
+        <p className="mt-2 text-[#5D707F]">
           Create and update help desk tickets.
         </p>
       </div>
 
       {errorMessage && (
-        <p className="mt-6 rounded-lg bg-red-50 p-4 text-red-700">
+        <p className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
           {errorMessage}
         </p>
       )}
 
       {successMessage && (
-        <p className="mt-6 rounded-lg bg-green-50 p-4 text-green-700">
+        <p className="mt-6 rounded-xl border border-[#66CED6]/40 bg-[#66CED6]/15 p-4 text-[#5D707F]">
           {successMessage}
         </p>
       )}
@@ -226,17 +241,21 @@ function TicketsPage() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[360px_1fr]">
         <form
           onSubmit={handleSubmit(handleCreateTicket)}
-          className="rounded-xl bg-white p-6 shadow-sm"
+          className="rounded-2xl border border-[#8797B2]/30 bg-white p-6 shadow-sm"
         >
-          <h2 className="text-xl font-semibold text-slate-900">
+          <h2 className="text-xl font-semibold text-black">
             Create ticket
           </h2>
+
+          <p className="mt-1 text-sm text-[#6D8A96]">
+            Add a new support request for the IT team.
+          </p>
 
           <div className="mt-5 space-y-4">
             <div>
               <label
                 htmlFor="title"
-                className="mb-1 block text-sm font-medium text-slate-700"
+                className="mb-1 block text-sm font-medium text-[#5D707F]"
               >
                 Title
               </label>
@@ -245,7 +264,7 @@ function TicketsPage() {
                 id="title"
                 type="text"
                 placeholder="Laptop cannot connect"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+                className="w-full rounded-lg border border-[#8797B2]/50 px-3 py-2 outline-none focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
                 {...register("title", {
                   required: "Ticket title is required",
                 })}
@@ -261,7 +280,7 @@ function TicketsPage() {
             <div>
               <label
                 htmlFor="description"
-                className="mb-1 block text-sm font-medium text-slate-700"
+                className="mb-1 block text-sm font-medium text-[#5D707F]"
               >
                 Description
               </label>
@@ -270,7 +289,7 @@ function TicketsPage() {
                 id="description"
                 rows="5"
                 placeholder="Describe the issue"
-                className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+                className="w-full resize-none rounded-lg border border-[#8797B2]/50 px-3 py-2 outline-none focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
                 {...register("description", {
                   required: "Description is required",
                 })}
@@ -286,14 +305,14 @@ function TicketsPage() {
             <div>
               <label
                 htmlFor="priority"
-                className="mb-1 block text-sm font-medium text-slate-700"
+                className="mb-1 block text-sm font-medium text-[#5D707F]"
               >
                 Priority
               </label>
 
               <select
                 id="priority"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+                className="w-full rounded-lg border border-[#8797B2]/50 px-3 py-2 outline-none focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
                 {...register("priority")}
               >
                 {priorityOptions.map((priority) => (
@@ -311,7 +330,7 @@ function TicketsPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-5 w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="mt-5 w-full rounded-lg bg-[#66CED6] px-4 py-3 font-semibold text-black transition-colors duration-200 hover:bg-[#8797B2] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting
               ? "Creating ticket..."
@@ -319,29 +338,29 @@ function TicketsPage() {
           </button>
         </form>
 
-        <div className="overflow-hidden rounded-xl bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h2 className="font-semibold text-slate-900">
+        <div className="overflow-hidden rounded-2xl border border-[#8797B2]/30 bg-white shadow-sm">
+          <div className="border-b border-[#8797B2]/30 bg-[#5D707F] px-5 py-4">
+            <h2 className="font-semibold text-white">
               Ticket list
             </h2>
           </div>
 
           {isLoading ? (
-            <p className="p-6 text-slate-600">
+            <p className="p-6 text-[#5D707F]">
               Loading tickets...
             </p>
           ) : tickets.length === 0 ? (
             <div className="p-8 text-center">
-              <p className="font-medium text-slate-900">
+              <p className="font-medium text-black">
                 No tickets found
               </p>
 
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-[#6D8A96]">
                 Create the first ticket using the form.
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-200">
+            <div className="divide-y divide-[#8797B2]/30">
               {tickets.map((ticket) => {
                 const selectedStatus =
                   ticketUpdates[ticket.id]?.status ||
@@ -355,26 +374,30 @@ function TicketsPage() {
                 return (
                   <article
                     key={ticket.id}
-                    className="p-5"
+                    className="p-5 transition-colors hover:bg-[#A7A5C6]/10"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <h3 className="font-semibold text-slate-900">
+                        <h3 className="font-semibold text-black">
                           #{ticket.id} — {ticket.title}
                         </h3>
 
-                        <p className="mt-1 text-sm text-slate-600">
+                        <p className="mt-1 text-sm text-[#5D707F]">
                           {ticket.description}
                         </p>
 
                         {ticket.asset_id && (
-                          <p className="mt-2 text-xs text-slate-500">
+                          <p className="mt-2 text-xs text-[#6D8A96]">
                             Asset ID: {ticket.asset_id}
                           </p>
                         )}
                       </div>
 
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-700">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold uppercase ${getPriorityBadgeClasses(
+                          ticket.priority,
+                        )}`}
+                      >
                         {ticket.priority || "medium"}
                       </span>
                     </div>
@@ -383,7 +406,7 @@ function TicketsPage() {
                       <div>
                         <label
                           htmlFor={`status-${ticket.id}`}
-                          className="mb-1 block text-xs font-medium text-slate-600"
+                          className="mb-1 block text-xs font-medium text-[#5D707F]"
                         >
                           Status
                         </label>
@@ -397,7 +420,7 @@ function TicketsPage() {
                               event.target.value,
                             )
                           }
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+                          className="w-full rounded-lg border border-[#8797B2]/50 px-3 py-2 outline-none focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
                         >
                           {statusOptions.map((status) => (
                             <option
@@ -419,7 +442,7 @@ function TicketsPage() {
                           updatingTicketId === ticket.id ||
                           !statusChanged
                         }
-                        className="self-end rounded-lg bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                        className="self-end rounded-lg bg-[#5D707F] px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-[#66CED6] hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {updatingTicketId === ticket.id
                           ? "Saving..."
