@@ -20,7 +20,8 @@ def create_ticket(
         title=ticket.title,
         description=ticket.description,
         priority=ticket.priority,
-        asset_id=ticket.asset_id
+        asset_id=ticket.asset_id,
+        assigned_to=ticket.assigned_to
     )
 
     db.add(new_ticket)
@@ -73,6 +74,7 @@ def update_ticket(
     ticket.status = updated_ticket.status
     ticket.priority = updated_ticket.priority
     ticket.asset_id = updated_ticket.asset_id
+    ticket.assigned_to = updated_ticket.assigned_to
 
     db.commit()
     db.refresh(ticket)
