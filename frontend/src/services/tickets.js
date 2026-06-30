@@ -11,6 +11,10 @@ export async function createTicket(ticketData) {
 }
 
 export async function updateTicket(ticketId, ticketData) {
-  const response = await api.put(`/tickets/${ticketId}`, ticketData);
+  const response = await api.put(
+    `/tickets/${ticketId}`,
+    ticketData,
+  );
+
   return response.data;
 }

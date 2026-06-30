@@ -21,6 +21,22 @@ const priorityOptions = [
   { value: "critical", label: "Critical" },
 ];
 
+function getErrorMessage(error, fallbackMessage) {
+  const detail = error.response?.data?.detail;
+
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => item.msg || "Validation error")
+      .join(", ");
+  }
+
+  return fallbackMessage;
+}
+
 function TicketsPage() {
   const [tickets, setTickets] = useState([]);
   const [ticketUpdates, setTicketUpdates] = useState({});
@@ -56,7 +72,6 @@ function TicketsPage() {
       ticketList.forEach((ticket) => {
         initialUpdates[ticket.id] = {
           status: ticket.status || "open",
-          assigned_to: ticket.assigned_to || "",
         };
       });
 
@@ -65,8 +80,10 @@ function TicketsPage() {
       console.error("Unable to load tickets:", error);
 
       setErrorMessage(
-        error.response?.data?.detail ||
+        getErrorMessage(
+          error,
           "Unable to load tickets from the backend.",
+        ),
       );
     } finally {
       setIsLoading(false);
@@ -95,23 +112,26 @@ function TicketsPage() {
       });
 
       setSuccessMessage("Ticket created successfully.");
+
       await loadTickets();
     } catch (error) {
       console.error("Unable to create ticket:", error);
 
       setErrorMessage(
-        error.response?.data?.detail ||
+        getErrorMessage(
+          error,
           "Unable to create the ticket.",
+        ),
       );
     }
   };
 
-  const changeUpdateField = (ticketId, field, value) => {
+  const changeTicketStatus = (ticketId, status) => {
     setTicketUpdates((currentUpdates) => ({
       ...currentUpdates,
       [ticketId]: {
         ...currentUpdates[ticketId],
-        [field]: value,
+        status,
       },
     }));
   };
@@ -122,21 +142,41 @@ function TicketsPage() {
     setUpdatingTicketId(ticketId);
 
     try {
-      const updateData = ticketUpdates[ticketId];
+      const ticket = tickets.find(
+        (currentTicket) => currentTicket.id === ticketId,
+      );
+
+      if (!ticket) {
+        setErrorMessage("Ticket could not be found.");
+        return;
+      }
+
+      const updatedStatus =
+        ticketUpdates[ticketId]?.status ||
+        ticket.status ||
+        "open";
 
       await updateTicket(ticketId, {
-        status: updateData.status,
-        assigned_to: updateData.assigned_to.trim(),
+        title: ticket.title,
+        description: ticket.description,
+        status: updatedStatus,
+        priority: ticket.priority || "medium",
+        asset_id: ticket.asset_id ?? null,
       });
 
-      setSuccessMessage(`Ticket #${ticketId} updated successfully.`);
+      setSuccessMessage(
+        `Ticket #${ticketId} updated successfully.`,
+      );
+
       await loadTickets();
     } catch (error) {
       console.error("Unable to update ticket:", error);
 
       setErrorMessage(
-        error.response?.data?.detail ||
+        getErrorMessage(
+          error,
           "Unable to update the ticket.",
+        ),
       );
     } finally {
       setUpdatingTicketId(null);
@@ -151,7 +191,7 @@ function TicketsPage() {
         </h1>
 
         <p className="mt-2 text-slate-600">
-          Create, assign, and update help desk tickets.
+          Create and update help desk tickets.
         </p>
       </div>
 
@@ -189,7 +229,7 @@ function TicketsPage() {
                 id="title"
                 type="text"
                 placeholder="Laptop cannot connect"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
                 {...register("title", {
                   required: "Ticket title is required",
                 })}
@@ -214,7 +254,7 @@ function TicketsPage() {
                 id="description"
                 rows="5"
                 placeholder="Describe the issue"
-                className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2"
+                className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
                 {...register("description", {
                   required: "Description is required",
                 })}
@@ -237,7 +277,7 @@ function TicketsPage() {
 
               <select
                 id="priority"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
                 {...register("priority")}
               >
                 {priorityOptions.map((priority) => (
@@ -255,9 +295,11 @@ function TicketsPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-5 w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+            className="mt-5 w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Creating ticket..." : "Create ticket"}
+            {isSubmitting
+              ? "Creating ticket..."
+              : "Create ticket"}
           </button>
         </form>
 
@@ -285,7 +327,10 @@ function TicketsPage() {
           ) : (
             <div className="divide-y divide-slate-200">
               {tickets.map((ticket) => (
-                <article key={ticket.id} className="p-5">
+                <article
+                  key={ticket.id}
+                  className="p-5"
+                >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <h3 className="font-semibold text-slate-900">
@@ -295,6 +340,12 @@ function TicketsPage() {
                       <p className="mt-1 text-sm text-slate-600">
                         {ticket.description}
                       </p>
+
+                      {ticket.asset_id && (
+                        <p className="mt-2 text-xs text-slate-500">
+                          Asset ID: {ticket.asset_id}
+                        </p>
+                      )}
                     </div>
 
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-700">
@@ -302,7 +353,7 @@ function TicketsPage() {
                     </span>
                   </div>
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-[180px_1fr_auto]">
+                  <div className="mt-4 grid gap-3 md:grid-cols-[180px_auto]">
                     <div>
                       <label
                         htmlFor={`status-${ticket.id}`}
@@ -319,13 +370,12 @@ function TicketsPage() {
                           "open"
                         }
                         onChange={(event) =>
-                          changeUpdateField(
+                          changeTicketStatus(
                             ticket.id,
-                            "status",
                             event.target.value,
                           )
                         }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                        className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
                       >
                         {statusOptions.map((status) => (
                           <option
@@ -338,37 +388,15 @@ function TicketsPage() {
                       </select>
                     </div>
 
-                    <div>
-                      <label
-                        htmlFor={`assigned-${ticket.id}`}
-                        className="mb-1 block text-xs font-medium text-slate-600"
-                      >
-                        Assigned technician
-                      </label>
-
-                      <input
-                        id={`assigned-${ticket.id}`}
-                        type="text"
-                        placeholder="technician@example.com"
-                        value={
-                          ticketUpdates[ticket.id]?.assigned_to || ""
-                        }
-                        onChange={(event) =>
-                          changeUpdateField(
-                            ticket.id,
-                            "assigned_to",
-                            event.target.value,
-                          )
-                        }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2"
-                      />
-                    </div>
-
                     <button
                       type="button"
-                      onClick={() => handleUpdateTicket(ticket.id)}
-                      disabled={updatingTicketId === ticket.id}
-                      className="self-end rounded-lg bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+                      onClick={() =>
+                        handleUpdateTicket(ticket.id)
+                      }
+                      disabled={
+                        updatingTicketId === ticket.id
+                      }
+                      className="self-end rounded-lg bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {updatingTicketId === ticket.id
                         ? "Saving..."
