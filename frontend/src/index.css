@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+:root {
+  --color-lavender: #a7a5c6;
+  --color-lavender-grey: #8797b2;
+  --color-slate-grey: #6d8a96;
+  --color-blue-slate: #5d707f;
+  --color-cyan: #66ced6;
+
+  --color-white: #ffffff;
+  --color-black: #111111;
+  --color-page-background: #f7f8fa;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--color-page-background);
+  color: var(--color-black);
+}
