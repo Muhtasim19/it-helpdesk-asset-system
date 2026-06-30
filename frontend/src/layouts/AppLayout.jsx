@@ -1,4 +1,3 @@
-```jsx
 import { NavLink, Outlet, useNavigate } from "react-router";
 
 const navigationLinks = [
@@ -72,4 +71,3 @@ function AppLayout() {
 }
 
 export default AppLayout;
-```
