@@ -60,6 +60,7 @@ function TicketsPage() {
 
   const loadTickets = useCallback(async () => {
     try {
+      setIsLoading(true);
       setErrorMessage("");
 
       const result = await getTickets();
@@ -93,6 +94,21 @@ function TicketsPage() {
   useEffect(() => {
     loadTickets();
   }, [loadTickets]);
+
+  useEffect(() => {
+    if (!errorMessage && !successMessage) {
+      return undefined;
+    }
+
+    const messageTimer = window.setTimeout(() => {
+      setErrorMessage("");
+      setSuccessMessage("");
+    }, 4000);
+
+    return () => {
+      window.clearTimeout(messageTimer);
+    };
+  }, [errorMessage, successMessage]);
 
   const handleCreateTicket = async (data) => {
     setErrorMessage("");
@@ -326,85 +342,93 @@ function TicketsPage() {
             </div>
           ) : (
             <div className="divide-y divide-slate-200">
-              {tickets.map((ticket) => (
-                <article
-                  key={ticket.id}
-                  className="p-5"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold text-slate-900">
-                        #{ticket.id} — {ticket.title}
-                      </h3>
+              {tickets.map((ticket) => {
+                const selectedStatus =
+                  ticketUpdates[ticket.id]?.status ||
+                  ticket.status ||
+                  "open";
 
-                      <p className="mt-1 text-sm text-slate-600">
-                        {ticket.description}
-                      </p>
+                const statusChanged =
+                  selectedStatus !==
+                  (ticket.status || "open");
 
-                      {ticket.asset_id && (
-                        <p className="mt-2 text-xs text-slate-500">
-                          Asset ID: {ticket.asset_id}
+                return (
+                  <article
+                    key={ticket.id}
+                    className="p-5"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold text-slate-900">
+                          #{ticket.id} — {ticket.title}
+                        </h3>
+
+                        <p className="mt-1 text-sm text-slate-600">
+                          {ticket.description}
                         </p>
-                      )}
+
+                        {ticket.asset_id && (
+                          <p className="mt-2 text-xs text-slate-500">
+                            Asset ID: {ticket.asset_id}
+                          </p>
+                        )}
+                      </div>
+
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-700">
+                        {ticket.priority || "medium"}
+                      </span>
                     </div>
 
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase text-slate-700">
-                      {ticket.priority || "medium"}
-                    </span>
-                  </div>
+                    <div className="mt-4 grid gap-3 md:grid-cols-[180px_auto]">
+                      <div>
+                        <label
+                          htmlFor={`status-${ticket.id}`}
+                          className="mb-1 block text-xs font-medium text-slate-600"
+                        >
+                          Status
+                        </label>
 
-                  <div className="mt-4 grid gap-3 md:grid-cols-[180px_auto]">
-                    <div>
-                      <label
-                        htmlFor={`status-${ticket.id}`}
-                        className="mb-1 block text-xs font-medium text-slate-600"
-                      >
-                        Status
-                      </label>
+                        <select
+                          id={`status-${ticket.id}`}
+                          value={selectedStatus}
+                          onChange={(event) =>
+                            changeTicketStatus(
+                              ticket.id,
+                              event.target.value,
+                            )
+                          }
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+                        >
+                          {statusOptions.map((status) => (
+                            <option
+                              key={status.value}
+                              value={status.value}
+                            >
+                              {status.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                      <select
-                        id={`status-${ticket.id}`}
-                        value={
-                          ticketUpdates[ticket.id]?.status ||
-                          ticket.status ||
-                          "open"
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleUpdateTicket(ticket.id)
                         }
-                        onChange={(event) =>
-                          changeTicketStatus(
-                            ticket.id,
-                            event.target.value,
-                          )
+                        disabled={
+                          updatingTicketId === ticket.id ||
+                          !statusChanged
                         }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+                        className="self-end rounded-lg bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        {statusOptions.map((status) => (
-                          <option
-                            key={status.value}
-                            value={status.value}
-                          >
-                            {status.label}
-                          </option>
-                        ))}
-                      </select>
+                        {updatingTicketId === ticket.id
+                          ? "Saving..."
+                          : "Save"}
+                      </button>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleUpdateTicket(ticket.id)
-                      }
-                      disabled={
-                        updatingTicketId === ticket.id
-                      }
-                      className="self-end rounded-lg bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {updatingTicketId === ticket.id
-                        ? "Saving..."
-                        : "Save"}
-                    </button>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           )}
         </div>
