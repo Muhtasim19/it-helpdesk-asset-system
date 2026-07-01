@@ -74,7 +74,8 @@ def update_ticket(
     ticket.status = updated_ticket.status
     ticket.priority = updated_ticket.priority
     ticket.asset_id = updated_ticket.asset_id
-    ticket.assigned_to = updated_ticket.assigned_to
+    if "assigned_to" in updated_ticket.model_fields_set:
+        ticket.assigned_to = updated_ticket.assigned_to
 
     db.commit()
     db.refresh(ticket)
