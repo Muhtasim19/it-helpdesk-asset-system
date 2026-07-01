@@ -7,6 +7,7 @@ class TicketCreate(BaseModel):
     description: str
     priority: str = "Medium"
     asset_id: int | None = None
+    assigned_to: str | None = None
 
 
 class TicketUpdate(BaseModel):
@@ -15,6 +16,7 @@ class TicketUpdate(BaseModel):
     status: str
     priority: str
     asset_id: int | None = None
+    assigned_to: str | None = None
 
 
 class TicketResponse(BaseModel):
@@ -24,6 +26,7 @@ class TicketResponse(BaseModel):
     status: str
     priority: str
     asset_id: int | None = None
+    assigned_to: str | None = None
 
     class Config:
         from_attributes = True

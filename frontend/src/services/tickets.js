@@ -6,11 +6,18 @@ export async function getTickets() {
 }
 
 export async function createTicket(ticketData) {
-  const response = await api.post("/tickets/", ticketData);
+  const response = await api.post(
+    "/tickets/",
+    ticketData,
+  );
+
   return response.data;
 }
 
-export async function updateTicket(ticketId, ticketData) {
+export async function updateTicket(
+  ticketId,
+  ticketData,
+) {
   const response = await api.put(
     `/tickets/${ticketId}`,
     ticketData,
