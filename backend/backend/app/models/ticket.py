@@ -12,3 +12,4 @@ class Ticket(Base):
     status = Column(String, default="Open")
     priority = Column(String, default="Medium")
     asset_id = Column(Integer, ForeignKey("assets.id"), nullable=True)
+    assigned_to = Column(String, nullable=True)
