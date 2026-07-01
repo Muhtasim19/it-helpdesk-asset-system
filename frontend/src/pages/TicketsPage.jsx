@@ -41,12 +41,16 @@ function getPriorityBadgeClasses(priority) {
   switch (priority) {
     case "low":
       return "bg-[#66CED6] text-black";
+
     case "medium":
       return "bg-[#A7A5C6] text-black";
+
     case "high":
       return "bg-[#6D8A96] text-white";
+
     case "critical":
       return "bg-[#5D707F] text-white";
+
     default:
       return "bg-[#8797B2] text-white";
   }
@@ -56,7 +60,8 @@ function TicketsPage() {
   const [tickets, setTickets] = useState([]);
   const [ticketUpdates, setTicketUpdates] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-  const [updatingTicketId, setUpdatingTicketId] = useState(null);
+  const [updatingTicketId, setUpdatingTicketId] =
+    useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -70,6 +75,7 @@ function TicketsPage() {
       title: "",
       description: "",
       priority: "medium",
+      assigned_to: "",
     },
   });
 
@@ -88,6 +94,7 @@ function TicketsPage() {
       ticketList.forEach((ticket) => {
         initialUpdates[ticket.id] = {
           status: ticket.status || "open",
+          assigned_to: ticket.assigned_to || "",
         };
       });
 
@@ -134,12 +141,15 @@ function TicketsPage() {
         title: data.title.trim(),
         description: data.description.trim(),
         priority: data.priority,
+        assigned_to:
+          data.assigned_to.trim() || null,
       });
 
       reset({
         title: "",
         description: "",
         priority: "medium",
+        assigned_to: "",
       });
 
       setSuccessMessage("Ticket created successfully.");
@@ -157,12 +167,16 @@ function TicketsPage() {
     }
   };
 
-  const changeTicketStatus = (ticketId, status) => {
+  const changeTicketField = (
+    ticketId,
+    fieldName,
+    value,
+  ) => {
     setTicketUpdates((currentUpdates) => ({
       ...currentUpdates,
       [ticketId]: {
         ...currentUpdates[ticketId],
-        status,
+        [fieldName]: value,
       },
     }));
   };
@@ -174,7 +188,8 @@ function TicketsPage() {
 
     try {
       const ticket = tickets.find(
-        (currentTicket) => currentTicket.id === ticketId,
+        (currentTicket) =>
+          currentTicket.id === ticketId,
       );
 
       if (!ticket) {
@@ -187,12 +202,17 @@ function TicketsPage() {
         ticket.status ||
         "open";
 
+      const updatedAssignedTo =
+        ticketUpdates[ticketId]?.assigned_to?.trim() ||
+        null;
+
       await updateTicket(ticketId, {
         title: ticket.title,
         description: ticket.description,
         status: updatedStatus,
         priority: ticket.priority || "medium",
         asset_id: ticket.asset_id ?? null,
+        assigned_to: updatedAssignedTo,
       });
 
       setSuccessMessage(
@@ -222,7 +242,7 @@ function TicketsPage() {
         </h1>
 
         <p className="mt-2 text-[#5D707F]">
-          Create and update help desk tickets.
+          Create, assign, and update help desk tickets.
         </p>
       </div>
 
@@ -325,6 +345,35 @@ function TicketsPage() {
                 ))}
               </select>
             </div>
+
+            <div>
+              <label
+                htmlFor="assigned_to"
+                className="mb-1 block text-sm font-medium text-[#5D707F]"
+              >
+                Assigned technician
+              </label>
+
+              <input
+                id="assigned_to"
+                type="email"
+                placeholder="technician@example.com"
+                className="w-full rounded-lg border border-[#8797B2]/50 px-3 py-2 outline-none focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
+                {...register("assigned_to", {
+                  pattern: {
+                    value: /^\S+@\S+\.\S+$/,
+                    message:
+                      "Enter a valid technician email",
+                  },
+                })}
+              />
+
+              {errors.assigned_to && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.assigned_to.message}
+                </p>
+              )}
+            </div>
           </div>
 
           <button
@@ -367,9 +416,25 @@ function TicketsPage() {
                   ticket.status ||
                   "open";
 
+                const currentStatus =
+                  ticket.status || "open";
+
                 const statusChanged =
-                  selectedStatus !==
-                  (ticket.status || "open");
+                  selectedStatus !== currentStatus;
+
+                const selectedAssignedTo =
+                  ticketUpdates[ticket.id]
+                    ?.assigned_to || "";
+
+                const currentAssignedTo =
+                  ticket.assigned_to || "";
+
+                const assignmentChanged =
+                  selectedAssignedTo.trim() !==
+                  currentAssignedTo.trim();
+
+                const ticketChanged =
+                  statusChanged || assignmentChanged;
 
                 return (
                   <article
@@ -391,6 +456,12 @@ function TicketsPage() {
                             Asset ID: {ticket.asset_id}
                           </p>
                         )}
+
+                        <p className="mt-2 text-xs text-[#6D8A96]">
+                          Assigned to:{" "}
+                          {ticket.assigned_to ||
+                            "Not assigned"}
+                        </p>
                       </div>
 
                       <span
@@ -402,7 +473,7 @@ function TicketsPage() {
                       </span>
                     </div>
 
-                    <div className="mt-4 grid gap-3 md:grid-cols-[180px_auto]">
+                    <div className="mt-4 grid gap-3 md:grid-cols-[180px_1fr_auto]">
                       <div>
                         <label
                           htmlFor={`status-${ticket.id}`}
@@ -415,8 +486,9 @@ function TicketsPage() {
                           id={`status-${ticket.id}`}
                           value={selectedStatus}
                           onChange={(event) =>
-                            changeTicketStatus(
+                            changeTicketField(
                               ticket.id,
+                              "status",
                               event.target.value,
                             )
                           }
@@ -433,6 +505,30 @@ function TicketsPage() {
                         </select>
                       </div>
 
+                      <div>
+                        <label
+                          htmlFor={`assigned-${ticket.id}`}
+                          className="mb-1 block text-xs font-medium text-[#5D707F]"
+                        >
+                          Assigned technician
+                        </label>
+
+                        <input
+                          id={`assigned-${ticket.id}`}
+                          type="email"
+                          placeholder="technician@example.com"
+                          value={selectedAssignedTo}
+                          onChange={(event) =>
+                            changeTicketField(
+                              ticket.id,
+                              "assigned_to",
+                              event.target.value,
+                            )
+                          }
+                          className="w-full rounded-lg border border-[#8797B2]/50 px-3 py-2 outline-none focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
+                        />
+                      </div>
+
                       <button
                         type="button"
                         onClick={() =>
@@ -440,7 +536,7 @@ function TicketsPage() {
                         }
                         disabled={
                           updatingTicketId === ticket.id ||
-                          !statusChanged
+                          !ticketChanged
                         }
                         className="self-end rounded-lg bg-[#5D707F] px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-[#66CED6] hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
                       >
