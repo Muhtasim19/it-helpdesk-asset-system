@@ -43,4 +43,4 @@ app.include_router(dashboard_router)
 
 @app.get("/")
 def read_root():
-    return {"hey": "ily muhtasim!"}
+    return {"hey": "Nah! Sabi"}
