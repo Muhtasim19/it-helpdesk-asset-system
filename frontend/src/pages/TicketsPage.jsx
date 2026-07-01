@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { getCurrentUserRole } from "../services/auth";
 import {
   createTicket,
   getTickets,
@@ -56,7 +57,42 @@ function getPriorityBadgeClasses(priority) {
   }
 }
 
+function getStatusBadgeClasses(status) {
+  switch (status) {
+    case "open":
+      return "bg-[#66CED6]/30 text-black";
+
+    case "in_progress":
+      return "bg-[#A7A5C6]/50 text-black";
+
+    case "resolved":
+      return "bg-[#6D8A96] text-white";
+
+    case "closed":
+      return "bg-[#5D707F] text-white";
+
+    default:
+      return "bg-[#8797B2] text-white";
+  }
+}
+
+function getStatusLabel(statusValue) {
+  const status = statusOptions.find(
+    (option) => option.value === statusValue,
+  );
+
+  return status?.label || statusValue || "Open";
+}
+
 function TicketsPage() {
+  const currentRole = getCurrentUserRole();
+
+  const isAdmin = currentRole === "admin";
+  const isTechnician = currentRole === "technician";
+
+  const canUpdateStatus = isAdmin || isTechnician;
+  const canAssignTicket = isAdmin;
+
   const [tickets, setTickets] = useState([]);
   const [ticketUpdates, setTicketUpdates] = useState({});
   const [isLoading, setIsLoading] = useState(true);
@@ -85,7 +121,9 @@ function TicketsPage() {
       setErrorMessage("");
 
       const result = await getTickets();
-      const ticketList = Array.isArray(result) ? result : [];
+      const ticketList = Array.isArray(result)
+        ? result
+        : [];
 
       setTickets(ticketList);
 
@@ -141,8 +179,9 @@ function TicketsPage() {
         title: data.title.trim(),
         description: data.description.trim(),
         priority: data.priority,
-        assigned_to:
-          data.assigned_to.trim() || null,
+        assigned_to: canAssignTicket
+          ? data.assigned_to?.trim() || null
+          : null,
       });
 
       reset({
@@ -182,6 +221,13 @@ function TicketsPage() {
   };
 
   const handleUpdateTicket = async (ticketId) => {
+    if (!canUpdateStatus) {
+      setErrorMessage(
+        "Only admins and technicians can update ticket status.",
+      );
+      return;
+    }
+
     setErrorMessage("");
     setSuccessMessage("");
     setUpdatingTicketId(ticketId);
@@ -202,9 +248,11 @@ function TicketsPage() {
         ticket.status ||
         "open";
 
-      const updatedAssignedTo =
-        ticketUpdates[ticketId]?.assigned_to?.trim() ||
-        null;
+      const updatedAssignedTo = canAssignTicket
+        ? ticketUpdates[
+            ticketId
+          ]?.assigned_to?.trim() || null
+        : ticket.assigned_to || null;
 
       await updateTicket(ticketId, {
         title: ticket.title,
@@ -242,7 +290,11 @@ function TicketsPage() {
         </h1>
 
         <p className="mt-2 text-[#5D707F]">
-          Create, assign, and update help desk tickets.
+          {isAdmin
+            ? "Create, assign, and update help desk tickets."
+            : isTechnician
+              ? "View tickets and update their status."
+              : "Create and view your help desk tickets."}
         </p>
       </div>
 
@@ -346,34 +398,36 @@ function TicketsPage() {
               </select>
             </div>
 
-            <div>
-              <label
-                htmlFor="assigned_to"
-                className="mb-1 block text-sm font-medium text-[#5D707F]"
-              >
-                Assigned technician
-              </label>
+            {canAssignTicket && (
+              <div>
+                <label
+                  htmlFor="assigned_to"
+                  className="mb-1 block text-sm font-medium text-[#5D707F]"
+                >
+                  Assigned technician
+                </label>
 
-              <input
-                id="assigned_to"
-                type="email"
-                placeholder="technician@example.com"
-                className="w-full rounded-lg border border-[#8797B2]/50 px-3 py-2 outline-none focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
-                {...register("assigned_to", {
-                  pattern: {
-                    value: /^\S+@\S+\.\S+$/,
-                    message:
-                      "Enter a valid technician email",
-                  },
-                })}
-              />
+                <input
+                  id="assigned_to"
+                  type="email"
+                  placeholder="technician@example.com"
+                  className="w-full rounded-lg border border-[#8797B2]/50 px-3 py-2 outline-none focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
+                  {...register("assigned_to", {
+                    pattern: {
+                      value: /^\S+@\S+\.\S+$/,
+                      message:
+                        "Enter a valid technician email",
+                    },
+                  })}
+                />
 
-              {errors.assigned_to && (
-                <p className="mt-1 text-sm text-red-600">
-                  {errors.assigned_to.message}
-                </p>
-              )}
-            </div>
+                {errors.assigned_to && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.assigned_to.message}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <button
@@ -430,11 +484,14 @@ function TicketsPage() {
                   ticket.assigned_to || "";
 
                 const assignmentChanged =
+                  canAssignTicket &&
                   selectedAssignedTo.trim() !==
-                  currentAssignedTo.trim();
+                    currentAssignedTo.trim();
 
                 const ticketChanged =
-                  statusChanged || assignmentChanged;
+                  canUpdateStatus &&
+                  (statusChanged ||
+                    assignmentChanged);
 
                 return (
                   <article
@@ -473,78 +530,108 @@ function TicketsPage() {
                       </span>
                     </div>
 
-                    <div className="mt-4 grid gap-3 md:grid-cols-[180px_1fr_auto]">
-                      <div>
-                        <label
-                          htmlFor={`status-${ticket.id}`}
-                          className="mb-1 block text-xs font-medium text-[#5D707F]"
-                        >
-                          Status
-                        </label>
-
-                        <select
-                          id={`status-${ticket.id}`}
-                          value={selectedStatus}
-                          onChange={(event) =>
-                            changeTicketField(
-                              ticket.id,
-                              "status",
-                              event.target.value,
-                            )
-                          }
-                          className="w-full rounded-lg border border-[#8797B2]/50 px-3 py-2 outline-none focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
-                        >
-                          {statusOptions.map((status) => (
-                            <option
-                              key={status.value}
-                              value={status.value}
-                            >
-                              {status.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor={`assigned-${ticket.id}`}
-                          className="mb-1 block text-xs font-medium text-[#5D707F]"
-                        >
-                          Assigned technician
-                        </label>
-
-                        <input
-                          id={`assigned-${ticket.id}`}
-                          type="email"
-                          placeholder="technician@example.com"
-                          value={selectedAssignedTo}
-                          onChange={(event) =>
-                            changeTicketField(
-                              ticket.id,
-                              "assigned_to",
-                              event.target.value,
-                            )
-                          }
-                          className="w-full rounded-lg border border-[#8797B2]/50 px-3 py-2 outline-none focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleUpdateTicket(ticket.id)
-                        }
-                        disabled={
-                          updatingTicketId === ticket.id ||
-                          !ticketChanged
-                        }
-                        className="self-end rounded-lg bg-[#5D707F] px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-[#66CED6] hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+                    {canUpdateStatus ? (
+                      <div
+                        className={`mt-4 grid gap-3 ${
+                          canAssignTicket
+                            ? "md:grid-cols-[180px_1fr_auto]"
+                            : "md:grid-cols-[180px_auto]"
+                        }`}
                       >
-                        {updatingTicketId === ticket.id
-                          ? "Saving..."
-                          : "Save"}
-                      </button>
-                    </div>
+                        <div>
+                          <label
+                            htmlFor={`status-${ticket.id}`}
+                            className="mb-1 block text-xs font-medium text-[#5D707F]"
+                          >
+                            Status
+                          </label>
+
+                          <select
+                            id={`status-${ticket.id}`}
+                            value={selectedStatus}
+                            onChange={(event) =>
+                              changeTicketField(
+                                ticket.id,
+                                "status",
+                                event.target.value,
+                              )
+                            }
+                            className="w-full rounded-lg border border-[#8797B2]/50 px-3 py-2 outline-none focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
+                          >
+                            {statusOptions.map((status) => (
+                              <option
+                                key={status.value}
+                                value={status.value}
+                              >
+                                {status.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {canAssignTicket && (
+                          <div>
+                            <label
+                              htmlFor={`assigned-${ticket.id}`}
+                              className="mb-1 block text-xs font-medium text-[#5D707F]"
+                            >
+                              Assigned technician
+                            </label>
+
+                            <input
+                              id={`assigned-${ticket.id}`}
+                              type="email"
+                              placeholder="technician@example.com"
+                              value={selectedAssignedTo}
+                              onChange={(event) =>
+                                changeTicketField(
+                                  ticket.id,
+                                  "assigned_to",
+                                  event.target.value,
+                                )
+                              }
+                              className="w-full rounded-lg border border-[#8797B2]/50 px-3 py-2 outline-none focus:border-[#66CED6] focus:ring-2 focus:ring-[#66CED6]/30"
+                            />
+                          </div>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleUpdateTicket(ticket.id)
+                          }
+                          disabled={
+                            updatingTicketId ===
+                              ticket.id ||
+                            !ticketChanged
+                          }
+                          className="self-end rounded-lg bg-[#5D707F] px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-[#66CED6] hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {updatingTicketId === ticket.id
+                            ? "Saving..."
+                            : "Save"}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mt-4 flex flex-wrap gap-3 text-sm">
+                        <span
+                          className={`rounded-full px-3 py-1 font-medium ${getStatusBadgeClasses(
+                            ticket.status || "open",
+                          )}`}
+                        >
+                          Status:{" "}
+                          {getStatusLabel(
+                            ticket.status || "open",
+                          )}
+                        </span>
+
+                        <span className="rounded-full bg-[#66CED6]/25 px-3 py-1 font-medium text-black">
+                          Assigned to:{" "}
+                          {ticket.assigned_to ||
+                            "Not assigned"}
+                        </span>
+                      </div>
+                    )}
                   </article>
                 );
               })}
